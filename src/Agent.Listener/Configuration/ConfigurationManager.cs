@@ -253,6 +253,16 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
                 }
             }
 
+            // respect the serverUrl resolve by server.
+            // in case of agent configured using collection url instead of account url.
+            string agentServerUrl;
+            if (agent.Properties.TryGetValidatedValue<string>("ServerUrl", out agentServerUrl) &&
+                !string.IsNullOrEmpty(agentServerUrl))
+            {
+                Trace.Info($"Agent server url resolve by server: '{agentServerUrl}'.");
+                serverUrl = agentServerUrl;
+            }
+
             // See if the server supports our OAuth key exchange for credentials
             if (agent.Authorization != null &&
                 agent.Authorization.ClientId != Guid.Empty &&
