@@ -7,9 +7,48 @@ using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.Services.WebApi;
 using Microsoft.VisualStudio.Services.OAuth;
+using VSS = Microsoft.VisualStudio.Services.Common.Internal;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Linq;
 
 namespace Microsoft.VisualStudio.Services.Agent.Util
 {
+    public sealed class TarpitEventArgs : EventArgs
+    {
+        public TarpitEventArgs(string tarpitDelay, string tarpitExpiration)
+        {
+            TarpitDelay = tarpitDelay;
+            TarpitExpiration = tarpitExpiration;
+        }
+
+        public string TarpitDelay { get; private set; }
+        public string TarpitExpiration { get; private set; }
+    }
+
+    public class TarpitReportHandler : DelegatingHandler
+    {
+        public static event EventHandler<TarpitEventArgs> ServerThrottling;
+
+        protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            // Call the inner handler.
+            var response = await base.SendAsync(request, cancellationToken);
+
+            IEnumerable<string> vssRequestDelayed;
+            IEnumerable<string> vssRequestQuotaReset;
+            if (response.Headers.TryGetValues(VSS.HttpHeaders.VssRequestDelayed, out vssRequestDelayed) &&
+                response.Headers.TryGetValues(VSS.HttpHeaders.VssRequestQuotaReset, out vssRequestQuotaReset) &&
+                ServerThrottling != null)
+            {
+                ServerThrottling(this, new TarpitEventArgs(vssRequestDelayed.First(), vssRequestQuotaReset.First()));
+            }
+
+            return response;
+        }
+    }
+
     public static class ApiUtil
     {
         public static VssConnection CreateConnection(Uri serverUri, VssCredentials credentials)
@@ -54,7 +93,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Util
 
             settings.UserAgent = headerValues;
 
-            VssConnection connection = new VssConnection(serverUri, credentials, settings);
+            VssConnection connection = new VssConnection(serverUri, new VssHttpMessageHandler(credentials, settings), new DelegatingHandler[] { new TarpitReportHandler() });
             return connection;
         }
 

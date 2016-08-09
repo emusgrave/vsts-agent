@@ -13,6 +13,7 @@ namespace Microsoft.VisualStudio.Services.Agent
     [ServiceLocator(Default = typeof(JobServerQueue))]
     public interface IJobServerQueue : IAgentService
     {
+        event EventHandler<TarpitEventArgs> JobServerQueueThrottling;
         Task ShutdownAsync();
         void Start(JobRequestMessage jobRequest);
         void QueueWebConsoleLine(string line);
@@ -60,10 +61,22 @@ namespace Microsoft.VisualStudio.Services.Agent
         private readonly TaskCompletionSource<int> _jobCompletionSource = new TaskCompletionSource<int>();
         private bool _queueInProcess = false;
 
+        public event EventHandler<TarpitEventArgs> JobServerQueueThrottling;
+
+
         public override void Initialize(IHostContext hostContext)
         {
             base.Initialize(hostContext);
             _jobServer = hostContext.GetService<IJobServer>();
+            _jobServer.JobServerThrottling += JobServerThrottling_EventReceived;
+        }
+
+        private void JobServerThrottling_EventReceived(object sender, TarpitEventArgs data)
+        {
+            if (JobServerQueueThrottling != null)
+            {
+                JobServerQueueThrottling(this, data);
+            }
         }
 
         public void Start(JobRequestMessage jobRequest)
