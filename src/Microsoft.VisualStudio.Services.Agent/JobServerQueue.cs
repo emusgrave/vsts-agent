@@ -11,9 +11,9 @@ using System.Threading.Tasks;
 namespace Microsoft.VisualStudio.Services.Agent
 {
     [ServiceLocator(Default = typeof(JobServerQueue))]
-    public interface IJobServerQueue : IAgentService
+    public interface IJobServerQueue : IAgentService, IThrottlingReporter
     {
-        event EventHandler<TarpitEventArgs> JobServerQueueThrottling;
+        event EventHandler<ThrottlingReportEventArgs> JobServerQueueThrottling;
         Task ShutdownAsync();
         void Start(JobRequestMessage jobRequest);
         void QueueWebConsoleLine(string line);
@@ -61,21 +61,20 @@ namespace Microsoft.VisualStudio.Services.Agent
         private readonly TaskCompletionSource<int> _jobCompletionSource = new TaskCompletionSource<int>();
         private bool _queueInProcess = false;
 
-        public event EventHandler<TarpitEventArgs> JobServerQueueThrottling;
+        public event EventHandler<ThrottlingReportEventArgs> JobServerQueueThrottling;
 
 
         public override void Initialize(IHostContext hostContext)
         {
             base.Initialize(hostContext);
             _jobServer = hostContext.GetService<IJobServer>();
-            _jobServer.JobServerThrottling += JobServerThrottling_EventReceived;
         }
 
-        private void JobServerThrottling_EventReceived(object sender, TarpitEventArgs data)
+        public void ReportThrottling(string delay, string expiration)
         {
             if (JobServerQueueThrottling != null)
             {
-                JobServerQueueThrottling(this, data);
+                JobServerQueueThrottling(this, new ThrottlingReportEventArgs(delay, expiration));
             }
         }
 

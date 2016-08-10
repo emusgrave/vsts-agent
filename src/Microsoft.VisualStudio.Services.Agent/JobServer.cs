@@ -5,15 +5,12 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Services.WebApi;
-using Microsoft.VisualStudio.Services.Agent.Util;
 
 namespace Microsoft.VisualStudio.Services.Agent
 {
     [ServiceLocator(Default = typeof(JobServer))]
     public interface IJobServer : IAgentService
     {
-        event EventHandler<TarpitEventArgs> JobServerThrottling;
-
         Task ConnectAsync(VssConnection jobConnection);
 
         // logging and console
@@ -31,13 +28,10 @@ namespace Microsoft.VisualStudio.Services.Agent
         private VssConnection _connection;
         private TaskHttpClient _taskClient;
 
-        public event EventHandler<TarpitEventArgs> JobServerThrottling;
-
         public async Task ConnectAsync(VssConnection jobConnection)
         {
             _connection = jobConnection;
 
-            TarpitReportHandler.ServerThrottling += ServerTarpit_EventReceived;
             if (!_connection.HasAuthenticated)
             {
                 await _connection.ConnectAsync();
@@ -45,14 +39,6 @@ namespace Microsoft.VisualStudio.Services.Agent
 
             _taskClient = _connection.GetClient<TaskHttpClient>();
             _hasConnection = true;
-        }
-
-        private void ServerTarpit_EventReceived(object sender, TarpitEventArgs data)
-        {
-            if (JobServerThrottling != null)
-            {
-                JobServerThrottling(this, data);
-            }
         }
 
         private void CheckConnection()

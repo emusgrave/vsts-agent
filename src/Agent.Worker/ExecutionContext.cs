@@ -379,11 +379,11 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             _jobServerQueue.QueueTimelineRecordUpdate(_mainTimelineId, _record);
         }
 
-        private void JobServerQueueThrottling_EventReceived(object sender, TarpitEventArgs data)
+        private void JobServerQueueThrottling_EventReceived(object sender, ThrottlingReportEventArgs data)
         {
             if (!_throttlingReported)
             {
-                this.Warning($"Tarpit by server, current delay '{data.TarpitDelay}', expect duration '{data.TarpitExpiration}'");
+                this.Warning($"Tarpit by server, current delay '{data.Delay}', expect duration '{data.Expiration}'");
                 _throttlingReported = true;
             }
         }
