@@ -42,6 +42,7 @@ namespace Microsoft.VisualStudio.Services.Agent
             // Call the inner handler.
             var response = await base.SendAsync(request, cancellationToken);
 
+            // Inspect whether response has throttling information
             IEnumerable<string> vssRequestDelayed = null;
             IEnumerable<string> vssRequestQuotaReset = null;
             if (response.Headers.TryGetValues(HttpHeaders.VssRequestDelayed, out vssRequestDelayed) &&

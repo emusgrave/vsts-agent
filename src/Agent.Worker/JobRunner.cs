@@ -47,6 +47,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             Uri jobServerUrl = message.Environment.SystemConnection.Url;
 
             Trace.Info($"Creating job server with URL: {jobServerUrl}");
+            // jobServerQueue is the throttling reporter.
             var jobServerQueue = HostContext.GetService<IJobServerQueue>();
             var jobConnection = ApiUtil.CreateConnection(jobServerUrl, jobServerCredential, new DelegatingHandler[] { new ThrottlingReportHandler(jobServerQueue) });
             await jobServer.ConnectAsync(jobConnection);
